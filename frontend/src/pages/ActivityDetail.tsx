@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns'
 import { api } from '../api/client'
 import type { ActivityWithRecords } from '../types'
 import { ActivityBadge } from '../components/ActivityBadge'
+import { ActivityMap } from '../components/ActivityMap'
 
 function fmtDist(m: number | null) {
   if (!m) return '—'
@@ -161,6 +162,8 @@ export function ActivityDetail() {
           </div>
         ))}
       </div>
+
+      {hasGps && <ActivityMap records={records} />}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="bg-slate-800 rounded-xl p-4 space-y-0">
