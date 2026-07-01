@@ -11,16 +11,46 @@ pub async fn connect(db_path: &str) -> Result<SqlitePool> {
 }
 
 pub async fn migrate(pool: &SqlitePool) -> Result<()> {
-    let schema = include_str!("../../migrations/001_initial.sql");
     // Execute each statement separately (SQLite via sqlx doesn't support multi-statement exec)
-    for statement in schema.split(';') {
-        let stmt = statement.trim();
-        if !stmt.is_empty() {
-            sqlx::query(stmt).execute(pool).await?;
+    for schema in [
+        include_str!("../../migrations/001_initial.sql"),
+        include_str!("../../migrations/002_laps.sql"),
+    ] {
+        for statement in schema.split(';') {
+            let stmt = statement.trim();
+            if !stmt.is_empty() {
+                sqlx::query(stmt).execute(pool).await?;
+            }
         }
     }
+
+    // activities predates max_speed/elevation_loss; CREATE TABLE IF NOT EXISTS
+    // won't add columns to an already-existing table, so add them explicitly.
+    add_column_if_missing(pool, "activities", "max_speed", "REAL").await?;
+    add_column_if_missing(pool, "activities", "elevation_loss", "REAL").await?;
+
     sqlx::query("PRAGMA journal_mode=WAL").execute(pool).await?;
     sqlx::query("PRAGMA foreign_keys=ON").execute(pool).await?;
+    Ok(())
+}
+
+async fn add_column_if_missing(
+    pool: &SqlitePool,
+    table: &str,
+    column: &str,
+    sql_type: &str,
+) -> Result<()> {
+    let exists: Option<(String,)> = sqlx::query_as(&format!(
+        "SELECT name FROM pragma_table_info('{table}') WHERE name = '{column}'"
+    ))
+    .fetch_optional(pool)
+    .await?;
+
+    if exists.is_none() {
+        sqlx::query(&format!("ALTER TABLE {table} ADD COLUMN {column} {sql_type}"))
+            .execute(pool)
+            .await?;
+    }
     Ok(())
 }
 

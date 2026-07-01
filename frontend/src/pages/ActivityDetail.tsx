@@ -61,7 +61,8 @@ const METERS_PER_FOOT = 0.3048
 export function ActivityDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { units, elevationUnit, formatDistance, formatElevation, formatPace } = useUnits()
+  const { units, elevationUnit, formatDistance, formatElevation, formatPace, formatSpeed } =
+    useUnits()
   const [data, setData] = useState<ActivityWithRecords | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -94,7 +95,8 @@ export function ActivityDetail() {
     )
   }
 
-  const { activity, records } = data
+  const { activity, records, laps } = data
+  const lapLabel = activity.activity_type?.toLowerCase().includes('ski') ? 'Run' : 'Lap'
 
   // Downsample records for chart performance (max 500 points)
   const step = Math.max(1, Math.floor(records.length / 500))
@@ -164,7 +166,9 @@ export function ActivityDetail() {
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Stats</h2>
           <StatRow label="Avg Heart Rate" value={activity.avg_hr ? `${activity.avg_hr} bpm` : '—'} color="text-rose-400" />
           <StatRow label="Max Heart Rate" value={activity.max_hr ? `${activity.max_hr} bpm` : '—'} color="text-rose-400" />
+          <StatRow label="Max Speed" value={formatSpeed(activity.max_speed)} color="text-cyan-400" />
           <StatRow label="Elevation Gain" value={formatElevation(activity.elevation_gain)} />
+          <StatRow label="Elevation Loss" value={formatElevation(activity.elevation_loss)} />
           <StatRow label="Avg Cadence" value={activity.avg_cadence ? `${activity.avg_cadence} rpm` : '—'} />
           {activity.avg_power && (
             <StatRow label="Avg Power" value={`${activity.avg_power} W`} color="text-yellow-400" />
@@ -254,6 +258,44 @@ export function ActivityDetail() {
           )}
         </div>
       </div>
+
+      {laps.length > 1 && (
+        <div className="bg-slate-800 rounded-xl p-4">
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+            {lapLabel}s ({laps.length})
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wide">
+                  <th className="text-left px-3 py-2">#</th>
+                  <th className="text-right px-3 py-2">Duration</th>
+                  <th className="text-right px-3 py-2">Distance</th>
+                  <th className="text-right px-3 py-2">Descent</th>
+                  <th className="text-right px-3 py-2">Max Speed</th>
+                  <th className="text-right px-3 py-2">Avg HR</th>
+                  <th className="text-right px-3 py-2">Max HR</th>
+                  <th className="text-right px-3 py-2">Calories</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700/50">
+                {laps.map((lap) => (
+                  <tr key={lap.id}>
+                    <td className="px-3 py-2 text-slate-300">{lap.lap_index + 1}</td>
+                    <td className="px-3 py-2 text-right text-slate-300">{fmtDuration(lap.duration_secs)}</td>
+                    <td className="px-3 py-2 text-right text-blue-400">{formatDistance(lap.distance_meters)}</td>
+                    <td className="px-3 py-2 text-right text-slate-300">{formatElevation(lap.elevation_loss)}</td>
+                    <td className="px-3 py-2 text-right text-cyan-400">{formatSpeed(lap.max_speed)}</td>
+                    <td className="px-3 py-2 text-right text-rose-400">{lap.avg_hr ? `${lap.avg_hr} bpm` : '—'}</td>
+                    <td className="px-3 py-2 text-right text-rose-400">{lap.max_hr ? `${lap.max_hr} bpm` : '—'}</td>
+                    <td className="px-3 py-2 text-right text-orange-400">{lap.calories ? `${lap.calories} kcal` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {!hasGps && records.length === 0 && (
         <div className="bg-slate-800 rounded-xl p-6 text-center text-slate-500 text-sm">

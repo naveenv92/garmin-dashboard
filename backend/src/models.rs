@@ -14,11 +14,31 @@ pub struct NewActivity {
     pub avg_hr: Option<i64>,
     pub max_hr: Option<i64>,
     pub avg_speed: Option<f64>,
+    pub max_speed: Option<f64>,
     pub elevation_gain: Option<f64>,
+    pub elevation_loss: Option<f64>,
     pub avg_cadence: Option<i64>,
     pub avg_power: Option<i64>,
     pub vo2max: Option<f64>,
     pub source_file_hash: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewActivityLap {
+    pub lap_index: i64,
+    pub start_time: Option<String>,
+    pub end_time: Option<String>,
+    pub duration_secs: Option<f64>,
+    pub distance_meters: Option<f64>,
+    pub elevation_gain: Option<f64>,
+    pub elevation_loss: Option<f64>,
+    pub max_speed: Option<f64>,
+    pub avg_speed: Option<f64>,
+    pub avg_hr: Option<i64>,
+    pub max_hr: Option<i64>,
+    pub calories: Option<i64>,
+    pub min_altitude: Option<f64>,
+    pub max_altitude: Option<f64>,
 }
 
 #[derive(Debug, Clone)]
@@ -80,10 +100,32 @@ pub struct Activity {
     pub avg_hr: Option<i64>,
     pub max_hr: Option<i64>,
     pub avg_speed: Option<f64>,
+    pub max_speed: Option<f64>,
     pub elevation_gain: Option<f64>,
+    pub elevation_loss: Option<f64>,
     pub avg_cadence: Option<i64>,
     pub avg_power: Option<i64>,
     pub vo2max: Option<f64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ActivityLap {
+    pub id: i64,
+    pub activity_id: i64,
+    pub lap_index: i64,
+    pub start_time: Option<String>,
+    pub end_time: Option<String>,
+    pub duration_secs: Option<f64>,
+    pub distance_meters: Option<f64>,
+    pub elevation_gain: Option<f64>,
+    pub elevation_loss: Option<f64>,
+    pub max_speed: Option<f64>,
+    pub avg_speed: Option<f64>,
+    pub avg_hr: Option<i64>,
+    pub max_hr: Option<i64>,
+    pub calories: Option<i64>,
+    pub min_altitude: Option<f64>,
+    pub max_altitude: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -105,6 +147,7 @@ pub struct ActivityRecord {
 pub struct ActivityWithRecords {
     pub activity: Activity,
     pub records: Vec<ActivityRecord>,
+    pub laps: Vec<ActivityLap>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

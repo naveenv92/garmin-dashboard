@@ -11,10 +11,31 @@ export interface Activity {
   avg_hr: number | null
   max_hr: number | null
   avg_speed: number | null
+  max_speed: number | null
   elevation_gain: number | null
+  elevation_loss: number | null
   avg_cadence: number | null
   avg_power: number | null
   vo2max: number | null
+}
+
+export interface ActivityLap {
+  id: number
+  activity_id: number
+  lap_index: number
+  start_time: string | null
+  end_time: string | null
+  duration_secs: number | null
+  distance_meters: number | null
+  elevation_gain: number | null
+  elevation_loss: number | null
+  max_speed: number | null
+  avg_speed: number | null
+  avg_hr: number | null
+  max_hr: number | null
+  calories: number | null
+  min_altitude: number | null
+  max_altitude: number | null
 }
 
 export interface ActivityRecord {
@@ -34,6 +55,7 @@ export interface ActivityRecord {
 export interface ActivityWithRecords {
   activity: Activity
   records: ActivityRecord[]
+  laps: ActivityLap[]
 }
 
 export interface DailyWellness {

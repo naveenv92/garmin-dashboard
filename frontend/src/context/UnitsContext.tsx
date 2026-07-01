@@ -16,6 +16,7 @@ interface UnitsContextValue {
   formatDistanceKm: (km: number) => string
   formatElevation: (meters: number | null | undefined) => string
   formatPace: (speedMs: number | null | undefined) => string
+  formatSpeed: (speedMs: number | null | undefined) => string
 }
 
 const UnitsContext = createContext<UnitsContextValue | null>(null)
@@ -58,6 +59,14 @@ export function UnitsProvider({ children }: { children: ReactNode }) {
     return `${min}:${sec.toString().padStart(2, '0')} /${distanceUnit}`
   }
 
+  const formatSpeed = (speedMs: number | null | undefined) => {
+    if (!speedMs) return '—'
+    const kmh = speedMs * 3.6
+    const value = units === 'imperial' ? kmh / 1.609344 : kmh
+    const suffix = units === 'imperial' ? 'mph' : 'km/h'
+    return value.toFixed(1) + ' ' + suffix
+  }
+
   return (
     <UnitsContext.Provider
       value={{
@@ -69,6 +78,7 @@ export function UnitsProvider({ children }: { children: ReactNode }) {
         formatDistanceKm,
         formatElevation,
         formatPace,
+        formatSpeed,
       }}
     >
       {children}

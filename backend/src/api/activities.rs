@@ -1,4 +1,4 @@
-use crate::models::{Activity, ActivityRecord, ActivityWithRecords, OverviewStats};
+use crate::models::{Activity, ActivityLap, ActivityRecord, ActivityWithRecords, OverviewStats};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -27,7 +27,8 @@ pub async fn list(
     let rows = sqlx::query(
         r#"SELECT id, garmin_id, name, activity_type, sport, start_time,
                   duration_secs, distance_meters, calories, avg_hr, max_hr,
-                  avg_speed, elevation_gain, avg_cadence, avg_power, vo2max
+                  avg_speed, max_speed, elevation_gain, elevation_loss,
+                  avg_cadence, avg_power, vo2max
            FROM activities
            WHERE (? IS NULL OR LOWER(activity_type) LIKE '%' || LOWER(?) || '%')
              AND (? IS NULL OR start_time >= ?)
@@ -62,7 +63,8 @@ pub async fn get_one(
     let row = sqlx::query(
         r#"SELECT id, garmin_id, name, activity_type, sport, start_time,
                   duration_secs, distance_meters, calories, avg_hr, max_hr,
-                  avg_speed, elevation_gain, avg_cadence, avg_power, vo2max
+                  avg_speed, max_speed, elevation_gain, elevation_loss,
+                  avg_cadence, avg_power, vo2max
            FROM activities WHERE id = ?"#,
     )
     .bind(id)
@@ -101,7 +103,41 @@ pub async fn get_one(
         })
         .collect();
 
-    Ok(Json(ActivityWithRecords { activity, records }))
+    let lap_rows = sqlx::query(
+        r#"SELECT id, activity_id, lap_index, start_time, end_time, duration_secs,
+                  distance_meters, elevation_gain, elevation_loss, max_speed,
+                  avg_speed, avg_hr, max_hr, calories, min_altitude, max_altitude
+           FROM activity_laps WHERE activity_id = ?
+           ORDER BY lap_index ASC"#,
+    )
+    .bind(id)
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let laps = lap_rows
+        .into_iter()
+        .map(|r| ActivityLap {
+            id: r.get("id"),
+            activity_id: r.get("activity_id"),
+            lap_index: r.get("lap_index"),
+            start_time: r.get("start_time"),
+            end_time: r.get("end_time"),
+            duration_secs: r.get("duration_secs"),
+            distance_meters: r.get("distance_meters"),
+            elevation_gain: r.get("elevation_gain"),
+            elevation_loss: r.get("elevation_loss"),
+            max_speed: r.get("max_speed"),
+            avg_speed: r.get("avg_speed"),
+            avg_hr: r.get("avg_hr"),
+            max_hr: r.get("max_hr"),
+            calories: r.get("calories"),
+            min_altitude: r.get("min_altitude"),
+            max_altitude: r.get("max_altitude"),
+        })
+        .collect();
+
+    Ok(Json(ActivityWithRecords { activity, records, laps }))
 }
 
 pub async fn overview(
@@ -140,7 +176,8 @@ pub async fn overview(
     let recent_rows = sqlx::query(
         r#"SELECT id, garmin_id, name, activity_type, sport, start_time,
                   duration_secs, distance_meters, calories, avg_hr, max_hr,
-                  avg_speed, elevation_gain, avg_cadence, avg_power, vo2max
+                  avg_speed, max_speed, elevation_gain, elevation_loss,
+                  avg_cadence, avg_power, vo2max
            FROM activities ORDER BY start_time DESC LIMIT 5"#,
     )
     .fetch_all(&pool)
@@ -200,7 +237,9 @@ fn row_to_activity(r: sqlx::sqlite::SqliteRow) -> Activity {
         avg_hr: r.get("avg_hr"),
         max_hr: r.get("max_hr"),
         avg_speed: r.get("avg_speed"),
+        max_speed: r.get("max_speed"),
         elevation_gain: r.get("elevation_gain"),
+        elevation_loss: r.get("elevation_loss"),
         avg_cadence: r.get("avg_cadence"),
         avg_power: r.get("avg_power"),
         vo2max: r.get("vo2max"),

@@ -24,6 +24,8 @@ pub fn parse(path: &Path) -> Result<GpxResult> {
     let mut start_time: Option<String> = None;
     let mut total_distance: f64 = 0.0;
     let mut elevation_gain: f64 = 0.0;
+    let mut elevation_loss: f64 = 0.0;
+    let mut max_speed: f64 = 0.0;
     let mut prev_altitude: Option<f64> = None;
     let mut prev_point: Option<(f64, f64)> = None;
 
@@ -47,6 +49,8 @@ pub fn parse(path: &Path) -> Result<GpxResult> {
                 if let (Some(prev_alt), Some(alt)) = (prev_altitude, altitude) {
                     if alt > prev_alt {
                         elevation_gain += alt - prev_alt;
+                    } else {
+                        elevation_loss += prev_alt - alt;
                     }
                 }
                 prev_altitude = altitude;
@@ -55,6 +59,12 @@ pub fn parse(path: &Path) -> Result<GpxResult> {
                     total_distance += haversine(prev_lat, prev_lon, lat, lon);
                 }
                 prev_point = Some((lat, lon));
+
+                if let Some(speed) = waypoint.speed {
+                    if speed > max_speed {
+                        max_speed = speed;
+                    }
+                }
 
                 records.push(NewActivityRecord {
                     activity_id: 0,
@@ -99,8 +109,14 @@ pub fn parse(path: &Path) -> Result<GpxResult> {
         avg_hr: None,
         max_hr: None,
         avg_speed: None,
+        max_speed: if max_speed > 0.0 { Some(max_speed) } else { None },
         elevation_gain: if elevation_gain > 0.0 {
             Some(elevation_gain)
+        } else {
+            None
+        },
+        elevation_loss: if elevation_loss > 0.0 {
+            Some(elevation_loss)
         } else {
             None
         },

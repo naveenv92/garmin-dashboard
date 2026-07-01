@@ -1,5 +1,7 @@
 use crate::db;
-use crate::models::{NewActivity, NewActivityRecord, NewDailyWellness, NewSleepSession};
+use crate::models::{
+    NewActivity, NewActivityLap, NewActivityRecord, NewDailyWellness, NewSleepSession,
+};
 use crate::parsers;
 use anyhow::Result;
 use sha2::{Digest, Sha256};
@@ -115,6 +117,7 @@ pub async fn import(pool: &SqlitePool, root: &Path) -> Result<()> {
                     if let Some(activity_id) = result {
                         let n = fit_result.records.len();
                         insert_records(pool, activity_id, fit_result.records).await?;
+                        insert_laps(pool, activity_id, fit_result.laps).await?;
                         total_activities += 1;
                         total_records += n;
                     }
@@ -220,8 +223,9 @@ async fn insert_activity(
         r#"INSERT OR IGNORE INTO activities
            (garmin_id, name, activity_type, sport, start_time,
             duration_secs, distance_meters, calories, avg_hr, max_hr,
-            avg_speed, elevation_gain, avg_cadence, avg_power, vo2max, source_file_hash)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
+            avg_speed, max_speed, elevation_gain, elevation_loss,
+            avg_cadence, avg_power, vo2max, source_file_hash)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
     )
     .bind(&act.garmin_id)
     .bind(&act.name)
@@ -234,7 +238,9 @@ async fn insert_activity(
     .bind(act.avg_hr)
     .bind(act.max_hr)
     .bind(act.avg_speed)
+    .bind(act.max_speed)
     .bind(act.elevation_gain)
+    .bind(act.elevation_loss)
     .bind(act.avg_cadence)
     .bind(act.avg_power)
     .bind(act.vo2max)
@@ -286,6 +292,40 @@ async fn insert_records(
         .bind(rec.speed)
         .bind(rec.power)
         .bind(rec.distance)
+        .execute(pool)
+        .await?;
+    }
+    Ok(())
+}
+
+async fn insert_laps(
+    pool: &SqlitePool,
+    activity_id: i64,
+    laps: Vec<NewActivityLap>,
+) -> Result<()> {
+    for lap in laps {
+        sqlx::query(
+            r#"INSERT INTO activity_laps
+               (activity_id, lap_index, start_time, end_time, duration_secs,
+                distance_meters, elevation_gain, elevation_loss, max_speed,
+                avg_speed, avg_hr, max_hr, calories, min_altitude, max_altitude)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
+        )
+        .bind(activity_id)
+        .bind(lap.lap_index)
+        .bind(&lap.start_time)
+        .bind(&lap.end_time)
+        .bind(lap.duration_secs)
+        .bind(lap.distance_meters)
+        .bind(lap.elevation_gain)
+        .bind(lap.elevation_loss)
+        .bind(lap.max_speed)
+        .bind(lap.avg_speed)
+        .bind(lap.avg_hr)
+        .bind(lap.max_hr)
+        .bind(lap.calories)
+        .bind(lap.min_altitude)
+        .bind(lap.max_altitude)
         .execute(pool)
         .await?;
     }
