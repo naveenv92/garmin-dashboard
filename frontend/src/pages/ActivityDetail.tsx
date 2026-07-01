@@ -111,6 +111,7 @@ export function ActivityDetail() {
 
   const chartData = sampledRecords.map((r, i) => ({
     i,
+    time: r.timestamp ? format(parseISO(r.timestamp), 'HH:mm:ss') : String(i),
     dist: r.distance ? (r.distance / 1000).toFixed(2) : null,
     hr: r.heart_rate,
     alt: r.altitude ? Math.round(r.altitude) : null,
@@ -190,7 +191,7 @@ export function ActivityDetail() {
                 Heart Rate
               </h2>
               <ResponsiveContainer width="100%" height={150}>
-                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                   <defs>
                     <linearGradient id="hrGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
@@ -198,8 +199,12 @@ export function ActivityDetail() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="i" hide />
-                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} unit=" bpm" domain={['auto', 'auto']} />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    minTickGap={40}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} unit=" bpm" domain={['auto', 'auto']} width={58} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area dataKey="hr" name="HR" stroke="#f43f5e" fill="url(#hrGrad)" strokeWidth={1.5} dot={false} />
                 </AreaChart>
@@ -213,7 +218,7 @@ export function ActivityDetail() {
                 Elevation
               </h2>
               <ResponsiveContainer width="100%" height={120}>
-                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                   <defs>
                     <linearGradient id="altGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3} />
@@ -221,8 +226,12 @@ export function ActivityDetail() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="i" hide />
-                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} unit=" m" domain={['auto', 'auto']} />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    minTickGap={40}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} unit=" m" domain={['auto', 'auto']} width={58} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area dataKey="alt" name="Altitude" stroke="#22d3ee" fill="url(#altGrad)" strokeWidth={1.5} dot={false} />
                 </AreaChart>
@@ -236,10 +245,14 @@ export function ActivityDetail() {
                 Power
               </h2>
               <ResponsiveContainer width="100%" height={120}>
-                <LineChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="i" hide />
-                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} unit=" W" domain={['auto', 'auto']} />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    minTickGap={40}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} unit=" W" domain={['auto', 'auto']} width={44} />
                   <Tooltip content={<CustomTooltip />} />
                   <Line dataKey="power" name="Power" stroke="#facc15" strokeWidth={1.5} dot={false} />
                 </LineChart>
