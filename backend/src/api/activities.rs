@@ -4,6 +4,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use chrono::Datelike;
 use serde::Deserialize;
 use sqlx::{Row, SqlitePool};
 
@@ -106,6 +107,14 @@ pub async fn get_one(
 pub async fn overview(
     State(pool): State<SqlitePool>,
 ) -> Result<Json<OverviewStats>, StatusCode> {
+    // Garmin dates are calendar days in the user's local timezone. SQLite's
+    // date('now') is UTC, which drifts a day off local "today" for large
+    // parts of the day in any timezone behind UTC — compute boundaries in
+    // local time instead.
+    let today = chrono::Local::now().date_naive();
+    let thirty_days_ago = (today - chrono::Duration::days(30)).to_string();
+    let start_of_month = today.with_day(1).unwrap_or(today).to_string();
+
     let totals = sqlx::query(
         r#"SELECT
              COUNT(*) as total_activities,
@@ -121,8 +130,9 @@ pub async fn overview(
         r#"SELECT AVG(CAST(resting_hr AS REAL)) as avg_resting_hr
            FROM daily_wellness
            WHERE resting_hr IS NOT NULL
-             AND date >= date('now', '-30 days')"#,
+             AND date >= ?"#,
     )
+    .bind(&thirty_days_ago)
     .fetch_one(&pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -140,8 +150,9 @@ pub async fn overview(
     let month_steps = sqlx::query(
         r#"SELECT COALESCE(SUM(steps), 0) as total_steps
            FROM daily_wellness
-           WHERE date >= date('now', 'start of month')"#,
+           WHERE date >= ?"#,
     )
+    .bind(&start_of_month)
     .fetch_one(&pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -149,9 +160,10 @@ pub async fn overview(
     let avg_sleep = sqlx::query(
         r#"SELECT COALESCE(AVG(CAST(total_sleep_secs AS REAL)), 0.0) as avg_sleep
            FROM sleep_sessions
-           WHERE date >= date('now', '-30 days')
+           WHERE date >= ?
              AND total_sleep_secs IS NOT NULL"#,
     )
+    .bind(&thirty_days_ago)
     .fetch_one(&pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

@@ -27,7 +27,7 @@ pub async fn daily(
            FROM daily_wellness
            WHERE (? IS NULL OR date >= ?)
              AND (? IS NULL OR date <= ?)
-           ORDER BY date ASC
+           ORDER BY date DESC
            LIMIT ?"#,
     )
     .bind(&q.from)
@@ -74,7 +74,7 @@ pub async fn sleep_list(
            FROM sleep_sessions
            WHERE (? IS NULL OR date >= ?)
              AND (? IS NULL OR date <= ?)
-           ORDER BY date ASC
+           ORDER BY date DESC
            LIMIT ?"#,
     )
     .bind(&q.from)

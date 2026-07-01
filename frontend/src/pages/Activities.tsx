@@ -5,25 +5,13 @@ import { api } from '../api/client'
 import type { Activity } from '../types'
 import { ActivityBadge } from '../components/ActivityBadge'
 import { EmptyState } from '../components/EmptyState'
-
-function fmtDist(m: number | null) {
-  if (!m) return '—'
-  return (m / 1000).toFixed(2) + ' km'
-}
+import { useUnits } from '../context/UnitsContext'
 
 function fmtDuration(secs: number | null) {
   if (!secs) return '—'
   const h = Math.floor(secs / 3600)
   const m = Math.floor((secs % 3600) / 60)
   return h > 0 ? `${h}h ${m}m` : `${m}m`
-}
-
-function fmtPace(speed: number | null) {
-  if (!speed || speed === 0) return '—'
-  const minPerKm = 1000 / 60 / speed
-  const min = Math.floor(minPerKm)
-  const sec = Math.round((minPerKm - min) * 60)
-  return `${min}:${sec.toString().padStart(2, '0')} /km`
 }
 
 function fmtDate(iso: string) {
@@ -39,6 +27,7 @@ const ACTIVITY_TYPES = [
 ]
 
 export function Activities() {
+  const { formatDistance, formatPace } = useUnits()
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [typeFilter, setTypeFilter] = useState('All')
@@ -136,13 +125,13 @@ export function Activities() {
                     <ActivityBadge type={act.activity_type} />
                   </td>
                   <td className="px-4 py-3 text-right text-blue-400">
-                    {fmtDist(act.distance_meters)}
+                    {formatDistance(act.distance_meters)}
                   </td>
                   <td className="px-4 py-3 text-right text-slate-300">
                     {fmtDuration(act.duration_secs)}
                   </td>
                   <td className="px-4 py-3 text-right text-slate-400">
-                    {fmtPace(act.avg_speed)}
+                    {formatPace(act.avg_speed)}
                   </td>
                   <td className="px-4 py-3 text-right text-rose-400">
                     {act.avg_hr ? `${act.avg_hr} bpm` : '—'}

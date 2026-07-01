@@ -9,11 +9,7 @@ import { api } from '../api/client'
 import type { ActivityWithRecords } from '../types'
 import { ActivityBadge } from '../components/ActivityBadge'
 import { ActivityMap } from '../components/ActivityMap'
-
-function fmtDist(m: number | null) {
-  if (!m) return '—'
-  return (m / 1000).toFixed(2) + ' km'
-}
+import { useUnits } from '../context/UnitsContext'
 
 function fmtDuration(secs: number | null) {
   if (!secs) return '—'
@@ -21,14 +17,6 @@ function fmtDuration(secs: number | null) {
   const m = Math.floor((secs % 3600) / 60)
   const s = Math.round(secs % 60)
   return h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`
-}
-
-function fmtPace(speed: number | null) {
-  if (!speed || speed === 0) return '—'
-  const minPerKm = 1000 / 60 / speed
-  const min = Math.floor(minPerKm)
-  const sec = Math.round((minPerKm - min) * 60)
-  return `${min}:${sec.toString().padStart(2, '0')} /km`
 }
 
 function fmtDate(iso: string) {
@@ -68,9 +56,12 @@ function StatRow({ label, value, color }: StatRowProps) {
   )
 }
 
+const METERS_PER_FOOT = 0.3048
+
 export function ActivityDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { units, elevationUnit, formatDistance, formatElevation, formatPace } = useUnits()
   const [data, setData] = useState<ActivityWithRecords | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -114,7 +105,9 @@ export function ActivityDetail() {
     time: r.timestamp ? format(parseISO(r.timestamp), 'HH:mm:ss') : String(i),
     dist: r.distance ? (r.distance / 1000).toFixed(2) : null,
     hr: r.heart_rate,
-    alt: r.altitude ? Math.round(r.altitude) : null,
+    alt: r.altitude
+      ? Math.round(units === 'imperial' ? r.altitude / METERS_PER_FOOT : r.altitude)
+      : null,
     speed: r.speed
       ? Math.round((1000 / 60 / r.speed) * 10) / 10
       : null,
@@ -152,9 +145,9 @@ export function ActivityDetail() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Distance', value: fmtDist(activity.distance_meters), color: 'text-blue-400' },
+          { label: 'Distance', value: formatDistance(activity.distance_meters), color: 'text-blue-400' },
           { label: 'Duration', value: fmtDuration(activity.duration_secs), color: 'text-slate-200' },
-          { label: 'Avg Pace', value: fmtPace(activity.avg_speed), color: 'text-emerald-400' },
+          { label: 'Avg Pace', value: formatPace(activity.avg_speed), color: 'text-emerald-400' },
           { label: 'Calories', value: activity.calories ? `${activity.calories} kcal` : '—', color: 'text-orange-400' },
         ].map((s) => (
           <div key={s.label} className="bg-slate-800 rounded-xl p-4">
@@ -171,7 +164,7 @@ export function ActivityDetail() {
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Stats</h2>
           <StatRow label="Avg Heart Rate" value={activity.avg_hr ? `${activity.avg_hr} bpm` : '—'} color="text-rose-400" />
           <StatRow label="Max Heart Rate" value={activity.max_hr ? `${activity.max_hr} bpm` : '—'} color="text-rose-400" />
-          <StatRow label="Elevation Gain" value={activity.elevation_gain ? `${Math.round(activity.elevation_gain)} m` : '—'} />
+          <StatRow label="Elevation Gain" value={formatElevation(activity.elevation_gain)} />
           <StatRow label="Avg Cadence" value={activity.avg_cadence ? `${activity.avg_cadence} rpm` : '—'} />
           {activity.avg_power && (
             <StatRow label="Avg Power" value={`${activity.avg_power} W`} color="text-yellow-400" />
@@ -231,7 +224,7 @@ export function ActivityDetail() {
                     tick={{ fontSize: 10, fill: '#64748b' }}
                     minTickGap={40}
                   />
-                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} unit=" m" domain={['auto', 'auto']} width={58} />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} unit={` ${elevationUnit}`} domain={['auto', 'auto']} width={58} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area dataKey="alt" name="Altitude" stroke="#22d3ee" fill="url(#altGrad)" strokeWidth={1.5} dot={false} />
                 </AreaChart>

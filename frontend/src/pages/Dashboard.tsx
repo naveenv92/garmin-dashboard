@@ -10,11 +10,7 @@ import { ActivityBadge } from '../components/ActivityBadge'
 import { EmptyState } from '../components/EmptyState'
 import { useNavigate } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
-
-function fmtDist(meters: number | null) {
-  if (!meters) return '—'
-  return (meters / 1000).toFixed(1) + ' km'
-}
+import { useUnits } from '../context/UnitsContext'
 
 function fmtDuration(secs: number | null) {
   if (!secs) return '—'
@@ -44,6 +40,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export function Dashboard() {
+  const { formatDistance, formatDistanceKm } = useUnits()
   const [stats, setStats] = useState<OverviewStats | null>(null)
   const [wellness, setWellness] = useState<DailyWellness[]>([])
   const [error, setError] = useState(false)
@@ -75,7 +72,7 @@ export function Dashboard() {
   const stepsData = [...wellness]
     .reverse()
     .map((d) => ({
-      date: d.date.slice(5),
+      date: d.date,
       steps: d.steps ?? 0,
     }))
 
@@ -114,7 +111,7 @@ export function Dashboard() {
         />
         <StatCard
           label="Total Distance"
-          value={(stats.total_distance_km).toFixed(0) + ' km'}
+          value={formatDistanceKm(stats.total_distance_km)}
           color="blue"
         />
         <StatCard
@@ -199,7 +196,7 @@ export function Dashboard() {
                 </div>
                 <div className="text-right text-sm text-slate-400 flex gap-4">
                   {act.distance_meters && (
-                    <span className="text-blue-400">{fmtDist(act.distance_meters)}</span>
+                    <span className="text-blue-400">{formatDistance(act.distance_meters)}</span>
                   )}
                   {act.duration_secs && (
                     <span>{fmtDuration(act.duration_secs)}</span>
